@@ -96,6 +96,43 @@ SAMPLE_ADD_COMMENT_RESPONSE = {
     "id": 2001
 }
 
+# Sample attachments responses
+SAMPLE_ATTACHMENTS_RESPONSE = {
+    "bugs": {
+        "12345": [
+            {
+                "id": 9001,
+                "bug_id": 12345,
+                "file_name": "test_attachment.txt",
+                "summary": "Sample test attachment",
+                "content_type": "text/plain",
+                "size": 13,
+                "creation_time": "2023-01-18T11:00:00Z",
+                "last_change_time": "2023-01-18T11:00:00Z",
+                "is_private": False,
+                "data": "SGVsbG8sIFdvcmxkIQ=="  # Base64 encoded "Hello, World!"
+            }
+        ]
+    }
+}
+
+SAMPLE_SINGLE_ATTACHMENT_RESPONSE = {
+    "attachments": {
+        "9001": {
+            "id": 9001,
+            "bug_id": 12345,
+            "file_name": "test_attachment.txt",
+            "summary": "Sample test attachment",
+            "content_type": "text/plain",
+            "size": 13,
+            "creation_time": "2023-01-18T11:00:00Z",
+            "last_change_time": "2023-01-18T11:00:00Z",
+            "is_private": False,
+            "data": "SGVsbG8sIFdvcmxkIQ=="  # Base64 encoded "Hello, World!"
+        }
+    }
+}
+
 
 @pytest.fixture
 def mock_bugzilla_client():
@@ -110,6 +147,38 @@ def mock_bugzilla_client():
     client.bug_info = AsyncMock(return_value=SAMPLE_BUG)
     client.bug_comments = AsyncMock(return_value=SAMPLE_COMMENTS)
     client.add_comment = AsyncMock(return_value=SAMPLE_ADD_COMMENT_RESPONSE)
+    client.download_attachments = AsyncMock(return_value=[
+        {
+            "id": 9001,
+            "bug_id": 12345,
+            "file_name": "test_attachment.txt",
+            "content_type": "text/plain",
+            "size": 13,
+            "path": "/mock/path/tmp/9001_test_attachment.txt"
+        }
+    ])
+    client.download_attachment = AsyncMock(return_value={
+        "id": 9001,
+        "bug_id": 12345,
+        "file_name": "test_attachment.txt",
+        "content_type": "text/plain",
+        "size": 13,
+        "path": "/mock/path/tmp/9001_test_attachment.txt"
+    })
+    client.bugs_info = AsyncMock(return_value=[SAMPLE_BUG])
+    client.bugs_comments = AsyncMock(return_value={"12345": SAMPLE_COMMENTS})
+    client.bugs_analysis_context = AsyncMock(return_value={
+        "12345": {
+            "id": 12345,
+            "summary": "Test bug summary",
+            "product": "Firefox",
+            "component": "General",
+            "status": "NEW",
+            "resolution": "",
+            "comments_count": len(SAMPLE_COMMENTS),
+            "comments_preview": SAMPLE_COMMENTS
+        }
+    })
     client.close = AsyncMock()
     
     # Mock the httpx client

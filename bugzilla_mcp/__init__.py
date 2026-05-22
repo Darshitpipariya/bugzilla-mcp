@@ -8,6 +8,12 @@ from .tools.bugzilla import (
     learn_quicksearch_syntax,
     server_url,
     bug_url,
+    download_attachments,
+    download_attachment,
+    bugs_info,
+    bugs_comments,
+    bugs_analysis_context,
+    classify_bugs_heuristics,
 )
 
 __all__ = [
@@ -18,5 +24,11 @@ __all__ = [
     "learn_quicksearch_syntax",
     "server_url",
     "bug_url",
+    "download_attachments",
+    "download_attachment",
+    "bugs_info",
+    "bugs_comments",
+    "bugs_analysis_context",
+    "classify_bugs_heuristics",
 ]
 
