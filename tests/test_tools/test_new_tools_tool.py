@@ -79,6 +79,45 @@ class TestUpdateBugTool:
         set_bugzilla_client.update_bug.assert_called_once()
 
     @pytest.mark.asyncio
+    async def test_update_bug_version(self, set_bugzilla_client):
+        await update_bug(ids=[12345], version="OS")
+        call_kwargs = set_bugzilla_client.update_bug.call_args.kwargs
+        assert call_kwargs["version"] == "OS"
+
+    @pytest.mark.asyncio
+    async def test_update_bug_all_parameters(self, set_bugzilla_client):
+        await update_bug(
+            ids=[12345],
+            summary="New summary",
+            product="New product",
+            component="New component",
+            op_sys="Windows",
+            platform="x86_64",
+            qa_contact="qa@example.com",
+            url="https://example.com/bug",
+            keywords={"add": ["perf"]},
+            cc={"add": ["cc@example.com"]},
+            see_also={"add": ["https://seealso.com"]},
+            blocks={"add": [222]},
+            depends_on={"add": [333]},
+            extra_fields={"cf_custom_field": "custom_val"}
+        )
+        call_kwargs = set_bugzilla_client.update_bug.call_args.kwargs
+        assert call_kwargs["summary"] == "New summary"
+        assert call_kwargs["product"] == "New product"
+        assert call_kwargs["component"] == "New component"
+        assert call_kwargs["op_sys"] == "Windows"
+        assert call_kwargs["platform"] == "x86_64"
+        assert call_kwargs["qa_contact"] == "qa@example.com"
+        assert call_kwargs["url"] == "https://example.com/bug"
+        assert call_kwargs["keywords"] == {"add": ["perf"]}
+        assert call_kwargs["cc"] == {"add": ["cc@example.com"]}
+        assert call_kwargs["see_also"] == {"add": ["https://seealso.com"]}
+        assert call_kwargs["blocks"] == {"add": [222]}
+        assert call_kwargs["depends_on"] == {"add": [333]}
+        assert call_kwargs["extra_fields"] == {"cf_custom_field": "custom_val"}
+
+    @pytest.mark.asyncio
     async def test_update_bug_duplicate(self, set_bugzilla_client):
         await update_bug(
             ids=[12345],

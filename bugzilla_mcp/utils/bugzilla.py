@@ -443,11 +443,20 @@ class Bugzilla:
         comment_is_private: bool = False,
         dupe_of: int | None = None,
         target_milestone: str | None = None,
+        version: str | None = None,
+        summary: str | None = None,
+        product: str | None = None,
+        component: str | None = None,
+        op_sys: str | None = None,
+        platform: str | None = None,
+        qa_contact: str | None = None,
+        url: str | None = None,
         keywords: dict[str, list[str]] | None = None,
         cc: dict[str, list[str]] | None = None,
         see_also: dict[str, list[str]] | None = None,
         blocks: dict[str, list[int]] | None = None,
         depends_on: dict[str, list[int]] | None = None,
+        extra_fields: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """Update one or more bugs via PUT /rest/bug.
 
@@ -473,6 +482,22 @@ class Bugzilla:
             payload["dupe_of"] = dupe_of
         if target_milestone is not None:
             payload["target_milestone"] = target_milestone
+        if version is not None:
+            payload["version"] = version
+        if summary is not None:
+            payload["summary"] = summary
+        if product is not None:
+            payload["product"] = product
+        if component is not None:
+            payload["component"] = component
+        if op_sys is not None:
+            payload["op_sys"] = op_sys
+        if platform is not None:
+            payload["platform"] = platform
+        if qa_contact is not None:
+            payload["qa_contact"] = qa_contact
+        if url is not None:
+            payload["url"] = url
         if keywords is not None:
             payload["keywords"] = keywords
         if cc is not None:
@@ -483,6 +508,8 @@ class Bugzilla:
             payload["blocks"] = blocks
         if depends_on is not None:
             payload["depends_on"] = depends_on
+        if extra_fields is not None:
+            payload.update(extra_fields)
 
         # Bugzilla REST update accepts the first id in the URL
         bug_id = ids[0]

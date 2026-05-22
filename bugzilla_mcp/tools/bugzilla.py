@@ -316,9 +316,25 @@ async def update_bug(
     comment_is_private: bool = False,
     dupe_of: int | None = None,
     target_milestone: str | None = None,
+    version: str | None = None,
+    summary: str | None = None,
+    product: str | None = None,
+    component: str | None = None,
+    op_sys: str | None = None,
+    platform: str | None = None,
+    qa_contact: str | None = None,
+    url: str | None = None,
+    keywords: dict[str, list[str]] | None = None,
+    cc: dict[str, list[str]] | None = None,
+    see_also: dict[str, list[str]] | None = None,
+    blocks: dict[str, list[int]] | None = None,
+    depends_on: dict[str, list[int]] | None = None,
+    extra_fields: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Update one or more bugs. Supports changing status, resolution, assignee, severity,
-    priority, whiteboard notes, and adding a comment in a single operation.
+    priority, whiteboard notes, version, summary, product, component, op_sys, platform,
+    qa_contact, url, keywords, cc, see_also, blocks, depends_on, custom fields and adding a
+    comment in a single operation.
 
     To mark as duplicate set resolution='DUPLICATE' and dupe_of=<original_bug_id>.
     """
@@ -337,6 +353,20 @@ async def update_bug(
             comment_is_private=comment_is_private,
             dupe_of=dupe_of,
             target_milestone=target_milestone,
+            version=version,
+            summary=summary,
+            product=product,
+            component=component,
+            op_sys=op_sys,
+            platform=platform,
+            qa_contact=qa_contact,
+            url=url,
+            keywords=keywords,
+            cc=cc,
+            see_also=see_also,
+            blocks=blocks,
+            depends_on=depends_on,
+            extra_fields=extra_fields,
         )
     except Exception as e:
         raise ToolError(f"Failed to update bug\nReason: {e}")

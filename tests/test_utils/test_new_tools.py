@@ -96,6 +96,59 @@ class TestUpdateBug:
         assert payload["status"] == "ASSIGNED"
 
     @pytest.mark.asyncio
+    async def test_update_bug_version(self, bz: Bugzilla):
+        bz.client.put = AsyncMock(
+            return_value=_make_response(
+                200,
+                {"bugs": [{"id": 12345, "last_change_time": "2024-01-01T00:00:00Z", "changes": []}]},
+            )
+        )
+        result = await bz.update_bug(ids=[12345], version="OS")
+        assert result["bugs"][0]["id"] == 12345
+        payload = bz.client.put.call_args.kwargs["json"]
+        assert payload["version"] == "OS"
+
+    @pytest.mark.asyncio
+    async def test_update_bug_all_parameters(self, bz: Bugzilla):
+        bz.client.put = AsyncMock(
+            return_value=_make_response(
+                200,
+                {"bugs": [{"id": 12345, "last_change_time": "2024-01-01T00:00:00Z", "changes": []}]},
+            )
+        )
+        result = await bz.update_bug(
+            ids=[12345],
+            summary="New summary",
+            product="New product",
+            component="New component",
+            op_sys="Windows",
+            platform="x86_64",
+            qa_contact="qa@example.com",
+            url="https://example.com/bug",
+            keywords={"add": ["perf"]},
+            cc={"add": ["cc@example.com"]},
+            see_also={"add": ["https://seealso.com"]},
+            blocks={"add": [222]},
+            depends_on={"add": [333]},
+            extra_fields={"cf_custom_field": "custom_val"}
+        )
+        assert result["bugs"][0]["id"] == 12345
+        payload = bz.client.put.call_args.kwargs["json"]
+        assert payload["summary"] == "New summary"
+        assert payload["product"] == "New product"
+        assert payload["component"] == "New component"
+        assert payload["op_sys"] == "Windows"
+        assert payload["platform"] == "x86_64"
+        assert payload["qa_contact"] == "qa@example.com"
+        assert payload["url"] == "https://example.com/bug"
+        assert payload["keywords"] == {"add": ["perf"]}
+        assert payload["cc"] == {"add": ["cc@example.com"]}
+        assert payload["see_also"] == {"add": ["https://seealso.com"]}
+        assert payload["blocks"] == {"add": [222]}
+        assert payload["depends_on"] == {"add": [333]}
+        assert payload["cf_custom_field"] == "custom_val"
+
+    @pytest.mark.asyncio
     async def test_update_bug_resolve_duplicate(self, bz: Bugzilla):
         bz.client.put = AsyncMock(
             return_value=_make_response(200, {"bugs": [{"id": 12345, "changes": []}]})
