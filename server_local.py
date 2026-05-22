@@ -1,5 +1,6 @@
 """Local stdio server — reads credentials from env vars instead of HTTP headers."""
 import os
+from dotenv import load_dotenv
 from fastmcp import FastMCP
 from bugzilla_mcp.tools.bugzilla import (
     bug_info,
@@ -31,6 +32,9 @@ from bugzilla_mcp.tools.bugzilla import (
 )
 from bugzilla_mcp.utils import Bugzilla
 import bugzilla_mcp.utils as utils
+
+# Load environment variables from .env file
+load_dotenv()
 
 BUGZILLA_URL = os.environ.get("BUGZILLA_URL", "")
 BUGZILLA_API_KEY = os.environ.get("BUGZILLA_API_KEY", "")
