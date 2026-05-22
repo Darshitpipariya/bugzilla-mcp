@@ -15,6 +15,7 @@ from bugzilla_mcp.tools.bugzilla import (
     bugs_comments,
     bugs_analysis_context,
     classify_bugs_heuristics,
+    analyze_bugs_statistics,
 )
 from bugzilla_mcp.utils import Bugzilla
 import bugzilla_mcp.utils as utils
@@ -42,6 +43,8 @@ mcp.tool()(bugs_info)
 mcp.tool()(bugs_comments)
 mcp.tool()(bugs_analysis_context)
 mcp.tool()(classify_bugs_heuristics)
+mcp.tool()(analyze_bugs_statistics)
+
 
 if __name__ == "__main__":
     mcp.run(transport="stdio")

@@ -8,6 +8,7 @@ from bugzilla_mcp.tools.bugzilla import (
     bugs_comments,
     bugs_analysis_context,
     classify_bugs_heuristics,
+    analyze_bugs_statistics,
 )
 
 
@@ -169,3 +170,33 @@ class TestClassifyBugsHeuristicsTool:
             await classify_bugs_heuristics([101])
         assert "Failed to perform heuristics classification" in str(exc_info.value)
         assert "Parsing Error" in str(exc_info.value)
+
+
+class TestAnalyzeBugsStatisticsTool:
+    """Tests for analyze_bugs_statistics tool"""
+
+    async def test_analyze_bugs_statistics_success(self, set_bugzilla_client):
+        """Test successful statistical analysis call"""
+        set_bugzilla_client.bugs_stats_analysis.return_value = {
+            "total_bugs": 2,
+            "classifications": {"to_fix": {"count": 2, "percentage": 100.0}},
+        }
+        result = await analyze_bugs_statistics([101, 102])
+        assert result["total_bugs"] == 2
+        assert result["classifications"]["to_fix"]["count"] == 2
+        set_bugzilla_client.bugs_stats_analysis.assert_called_once_with([101, 102])
+
+    async def test_analyze_bugs_statistics_raises_on_missing_client(self, reset_bugzilla_client):
+        """Test analyze_bugs_statistics raises ToolError when client not initialized"""
+        with pytest.raises(ToolError) as exc_info:
+            await analyze_bugs_statistics([101])
+        assert "Bugzilla client not initialized" in str(exc_info.value)
+
+    async def test_analyze_bugs_statistics_raises_on_api_error(self, set_bugzilla_client):
+        """Test analyze_bugs_statistics raises ToolError on API error"""
+        set_bugzilla_client.bugs_stats_analysis = AsyncMock(side_effect=Exception("Analysis Failure"))
+        with pytest.raises(ToolError) as exc_info:
+            await analyze_bugs_statistics([101])
+        assert "Failed to perform statistical analysis" in str(exc_info.value)
+        assert "Analysis Failure" in str(exc_info.value)
+

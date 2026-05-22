@@ -294,7 +294,99 @@ class Bugzilla:
 
         return merged
 
+    async def bugs_stats_analysis(self, bug_ids: list[int]) -> dict[str, Any]:
+        """Fetch bug info and perform high-level statistical analysis based on classifications and properties.
+
+        Args:
+            bug_ids: The list of bug IDs to analyze.
+
+        Returns:
+            A structured dict of counts and percentages of classifications, products, components,
+            severity, priority, and assignees.
+        """
+        if not bug_ids:
+            return {
+                "total_bugs": 0,
+                "classifications": {},
+                "products": {},
+                "components": {},
+                "to_fix_severity": {},
+                "to_fix_priority": {},
+                "assignee_distribution": {},
+            }
+
+        info_list = await self.bugs_info(bug_ids)
+        total = len(info_list)
+
+        if total == 0:
+            return {
+                "total_bugs": 0,
+                "classifications": {},
+                "products": {},
+                "components": {},
+                "to_fix_severity": {},
+                "to_fix_priority": {},
+                "assignee_distribution": {},
+            }
+
+        # Initialize counts
+        class_counts = {"to_fix": 0, "invalid": 0, "review_needed": 0}
+        product_counts = {}
+        component_counts = {}
+        to_fix_severity = {}
+        to_fix_priority = {}
+        assignee_counts = {}
+
+        for info in info_list:
+            status = info.get("status", "")
+            resolution = info.get("resolution", "")
+            product = info.get("product", "Unknown")
+            component = info.get("component", "Unknown")
+            severity = info.get("severity", "Unknown")
+            priority = info.get("priority", "Unknown")
+            assigned_to = info.get("assigned_to", "unassigned")
+
+            # Classification heuristics
+            is_closed_invalid = (
+                status in ["RESOLVED", "VERIFIED", "CLOSED"]
+                and resolution in ["INVALID", "WONTFIX", "DUPLICATE", "WORKSFORME", "NOTABUG"]
+            )
+            is_active_valid = status in ["NEW", "ASSIGNED", "REOPENED", "UNCONFIRMED"]
+
+            classification = "review_needed"
+            if is_closed_invalid:
+                classification = "invalid"
+            elif is_active_valid:
+                classification = "to_fix"
+                # Severity and Priority breakdown specifically for "to_fix" bugs
+                to_fix_severity[severity] = to_fix_severity.get(severity, 0) + 1
+                to_fix_priority[priority] = to_fix_priority.get(priority, 0) + 1
+
+            class_counts[classification] += 1
+            product_counts[product] = product_counts.get(product, 0) + 1
+            component_counts[component] = component_counts.get(component, 0) + 1
+            assignee_counts[assigned_to] = assignee_counts.get(assigned_to, 0) + 1
+
+        # Helper to compute counts and percentages
+        def make_distribution(counts_dict: dict[str, int]) -> dict[str, dict[str, Any]]:
+            dist = {}
+            for key, val in counts_dict.items():
+                pct = round((val / total) * 100, 2)
+                dist[key] = {"count": val, "percentage": pct}
+            return dist
+
+        return {
+            "total_bugs": total,
+            "classifications": make_distribution(class_counts),
+            "products": make_distribution(product_counts),
+            "components": make_distribution(component_counts),
+            "to_fix_severity": to_fix_severity,
+            "to_fix_priority": to_fix_priority,
+            "assignee_distribution": make_distribution(assignee_counts),
+        }
+
     async def close(self):
         """Close the async client"""
         await self.client.aclose()
+
 

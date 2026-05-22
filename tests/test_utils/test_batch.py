@@ -160,3 +160,87 @@ class TestBugzillaBugsAnalysisContext:
         result = await bz.bugs_analysis_context([])
         assert result == {}
         await bz.close()
+
+
+class TestBugzillaBugsStatsAnalysis:
+    """Tests for bugs_stats_analysis method"""
+
+    async def test_bugs_stats_analysis_success(self, httpx_mock):
+        """Test successful stats computation based on classifications"""
+        bug_ids = [10001, 10002, 10003]
+
+        httpx_mock.add_response(
+            url="https://bugzilla.mozilla.org/rest/bug?api_key=test-key&id=10001%2C10002%2C10003",
+            json={
+                "bugs": [
+                    {
+                        "id": 10001,
+                        "status": "NEW",
+                        "resolution": "",
+                        "product": "Firefox",
+                        "component": "General",
+                        "severity": "critical",
+                        "priority": "P1",
+                        "assigned_to": "alice@example.com",
+                    },
+                    {
+                        "id": 10002,
+                        "status": "RESOLVED",
+                        "resolution": "WONTFIX",
+                        "product": "Firefox",
+                        "component": "Layout",
+                        "severity": "normal",
+                        "priority": "P2",
+                        "assigned_to": "bob@example.com",
+                    },
+                    {
+                        "id": 10003,
+                        "status": "RESOLVED",
+                        "resolution": "FIXED",
+                        "product": "Thunderbird",
+                        "component": "Mail",
+                        "severity": "minor",
+                        "priority": "P3",
+                        "assigned_to": "alice@example.com",
+                    },
+                ]
+            },
+        )
+
+        bz = Bugzilla(url="https://bugzilla.mozilla.org", api_key="test-key")
+        result = await bz.bugs_stats_analysis(bug_ids)
+
+        assert result["total_bugs"] == 3
+        
+        # Classification breakdown (1 of each -> 33.33%)
+        assert result["classifications"]["to_fix"]["count"] == 1
+        assert result["classifications"]["to_fix"]["percentage"] == 33.33
+        assert result["classifications"]["invalid"]["count"] == 1
+        assert result["classifications"]["invalid"]["percentage"] == 33.33
+        assert result["classifications"]["review_needed"]["count"] == 1
+        assert result["classifications"]["review_needed"]["percentage"] == 33.33
+
+        # Products breakdown (2 Firefox -> 66.67%, 1 Thunderbird -> 33.33%)
+        assert result["products"]["Firefox"]["count"] == 2
+        assert result["products"]["Firefox"]["percentage"] == 66.67
+        assert result["products"]["Thunderbird"]["count"] == 1
+        assert result["products"]["Thunderbird"]["percentage"] == 33.33
+
+        # Severity / Priority workload (Should only count NEW/to_fix bugs)
+        assert result["to_fix_severity"] == {"critical": 1}
+        assert result["to_fix_priority"] == {"P1": 1}
+
+        # Assignees breakdown (2 alice -> 66.67%, 1 bob -> 33.33%)
+        assert result["assignee_distribution"]["alice@example.com"]["count"] == 2
+        assert result["assignee_distribution"]["alice@example.com"]["percentage"] == 66.67
+
+        await bz.close()
+
+    async def test_bugs_stats_analysis_empty(self):
+        """Test bugs_stats_analysis with empty input list"""
+        bz = Bugzilla(url="https://bugzilla.mozilla.org", api_key="test-key")
+        result = await bz.bugs_stats_analysis([])
+        assert result["total_bugs"] == 0
+        assert result["classifications"] == {}
+        await bz.close()
+

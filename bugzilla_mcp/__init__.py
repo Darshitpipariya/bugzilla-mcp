@@ -14,6 +14,7 @@ from .tools.bugzilla import (
     bugs_comments,
     bugs_analysis_context,
     classify_bugs_heuristics,
+    analyze_bugs_statistics,
 )
 
 __all__ = [
@@ -30,5 +31,7 @@ __all__ = [
     "bugs_comments",
     "bugs_analysis_context",
     "classify_bugs_heuristics",
+    "analyze_bugs_statistics",
 ]
+
 

@@ -254,3 +254,18 @@ async def classify_bugs_heuristics(ids: list[int]) -> dict[str, Any]:
             f"Failed to perform heuristics classification\nReason: {e}"
         )
 
+
+async def analyze_bugs_statistics(ids: list[int]) -> dict[str, Any]:
+    """Perform server-side statistical analysis on a batch of bug IDs based on triage classifications.
+
+    Returns breakdown of classifications, product distribution, component distribution,
+    severity, priority workload, and assignee distribution with both counts and percentages.
+    """
+    if utils.bz is None:
+        raise ToolError("Bugzilla client not initialized. Please ensure api_key and bugzilla_url headers are provided.")
+    try:
+        return await utils.bz.bugs_stats_analysis(ids)
+    except Exception as e:
+        raise ToolError(f"Failed to perform statistical analysis\nReason: {e}")
+
+

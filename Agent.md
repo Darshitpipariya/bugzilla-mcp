@@ -33,8 +33,11 @@ When handling lists or batches of bugs, use these optimized analytics tools to m
     *   `to_fix`: Active bugs (e.g., `NEW`, `ASSIGNED`, `REOPENED`).
     *   `invalid`: Closed/resolved bugs that require no action (e.g., `RESOLVED WONTFIX`/`DUPLICATE`).
     *   `review_needed`: All other status/resolution combinations.
+*   **`analyze_bugs_statistics`**: Performs server-side data aggregation on a batch of bug IDs to compile statistical reports.
+    *   *Usage Tip*: Returns counts and percentages for triage classifications, product/component lines, and assignees, as well as priority and severity distribution counts for active `to_fix` tasks. Ideal for audits and dashboards.
 *   **`bugs_analysis_context`**: Merges bug details and compressed comments for multiple bug IDs in a single parallelized operation.
     *   *Usage Tip*: If a bug has more than 4 comments, the server automatically compresses them, retaining only the **first 2** and **last 2** comments with an omission placeholder to prevent context window overflow.
+
 
 ### Phase 3: Detail Retrieval
 Examine specific bug profiles when deep-diving into individual issues.
@@ -88,17 +91,23 @@ When assigned a single bug ID:
 ---
 
 ### Playbook B: Bulk Auditing & Triage of Multiple Bugs
-When given a list of multiple bug IDs to clean up or categorize:
+When given a list of multiple bug IDs to clean up, report, or categorize:
 
-1.  **Apply Heuristics Classification**:
+1.  **Perform Statistical Analysis**:
+    ```json
+    // Generate high-level breakdown of products, components, severities, and assignees
+    analyze_bugs_statistics(ids=[12345, 12346, 12347, 12348])
+    ```
+2.  **Apply Heuristics Classification**:
     ```json
     // Instantly separate active tasks from closed/duplicate/invalid bugs
     classify_bugs_heuristics(ids=[12345, 12346, 12347, 12348])
     ```
-2.  **Inspect Complex Cases with Compressed Context**:
+3.  **Inspect Complex Cases with Compressed Context**:
     For bugs classified as `to_fix` or `review_needed`, fetch consolidated, token-safe summaries:
     ```json
     bugs_analysis_context(ids=[12345, 12347])
     ```
-3.  **Execute Fixes Parallelly or Sequentially**:
+4.  **Execute Fixes Parallelly or Sequentially**:
     Use Playbook A to deep-dive into each individual valid bug.
+

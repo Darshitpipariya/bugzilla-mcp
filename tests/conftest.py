@@ -179,7 +179,17 @@ def mock_bugzilla_client():
             "comments_preview": SAMPLE_COMMENTS
         }
     })
+    client.bugs_stats_analysis = AsyncMock(return_value={
+        "total_bugs": 1,
+        "classifications": {"to_fix": {"count": 1, "percentage": 100.0}},
+        "products": {"Firefox": {"count": 1, "percentage": 100.0}},
+        "components": {"General": {"count": 1, "percentage": 100.0}},
+        "to_fix_severity": {"normal": 1},
+        "to_fix_priority": {"P2": 1},
+        "assignee_distribution": {"developer@example.com": {"count": 1, "percentage": 100.0}},
+    })
     client.close = AsyncMock()
+
     
     # Mock the httpx client
     client.client = MagicMock()

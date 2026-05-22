@@ -15,6 +15,7 @@ from bugzilla_mcp.tools.bugzilla import (
     bugs_comments,
     bugs_analysis_context,
     classify_bugs_heuristics,
+    analyze_bugs_statistics,
 )
 
 # Load environment variables from .env file
@@ -38,6 +39,8 @@ mcp.tool()(bugs_info)
 mcp.tool()(bugs_comments)
 mcp.tool()(bugs_analysis_context)
 mcp.tool()(classify_bugs_heuristics)
+mcp.tool()(analyze_bugs_statistics)
+
 
 
 # start the MCP server (only when run directly, not during import/inspection)
