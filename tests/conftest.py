@@ -190,14 +190,79 @@ def mock_bugzilla_client():
     })
     client.close = AsyncMock()
 
-    
+    # New tools mocks
+    client.create_bug = AsyncMock(return_value={"id": 99999})
+    client.update_bug = AsyncMock(return_value={
+        "bugs": [{"id": 12345, "last_change_time": "2024-01-20T10:00:00Z", "changes": []}]
+    })
+    client.bug_history = AsyncMock(return_value=[
+        {
+            "when": "2024-01-20T10:00:00Z",
+            "who": "dev@example.com",
+            "changes": [
+                {"field_name": "priority", "removed": "P3", "added": "P1"},
+            ],
+        }
+    ])
+    client.bugs_advanced_search = AsyncMock(return_value=[
+        {
+            "id": 12345,
+            "summary": "Test bug summary",
+            "status": "NEW",
+            "resolution": "",
+            "product": "Firefox",
+            "component": "General",
+            "assigned_to": "developer@example.com",
+            "priority": "P2",
+            "severity": "normal",
+            "creation_time": "2023-01-15T10:30:00Z",
+            "last_change_time": "2023-01-20T15:45:00Z",
+        }
+    ])
+    client.bug_dependencies = AsyncMock(return_value={
+        "id": 12345,
+        "summary": "Test bug summary",
+        "status": "NEW",
+        "blocks": [12346, 12347],
+        "depends_on": [12300],
+    })
+    client.duplicate_chain = AsyncMock(return_value=[
+        {"id": 99999, "summary": "Dup bug", "status": "RESOLVED", "dupe_of": 12345},
+        {"id": 12345, "summary": "Root bug", "status": "RESOLVED", "dupe_of": None},
+    ])
+    client.get_user = AsyncMock(return_value=[
+        {"id": 42, "real_name": "Alice Dev", "name": "alice@example.com",
+         "email": "alice@example.com", "can_login": True}
+    ])
+    client.search_users = AsyncMock(return_value=[
+        {"id": 42, "real_name": "Alice Dev", "name": "alice@example.com",
+         "email": "alice@example.com", "can_login": True}
+    ])
+    client.list_products = AsyncMock(return_value=[
+        {"id": 1, "name": "Firefox", "description": "Firefox Browser", "is_active": True},
+        {"id": 2, "name": "Thunderbird", "description": "Thunderbird Email", "is_active": True},
+    ])
+    client.get_product_components = AsyncMock(return_value={
+        "name": "Firefox",
+        "components": [
+            {"name": "General", "description": "General Firefox issues",
+             "default_assignee": "nobody@example.com"},
+            {"name": "Networking", "description": "Network issues",
+             "default_assignee": "net-dev@example.com"},
+        ],
+    })
+    client.upload_attachment = AsyncMock(return_value={"attachment_id": 8001, "bug_id": 12345})
+    client.tag_comment = AsyncMock(return_value={"tags": ["fix-candidate", "ai-generated"]})
+
     # Mock the httpx client
     client.client = MagicMock()
     client.client.get = AsyncMock()
     client.client.post = AsyncMock()
+    client.client.put = AsyncMock()
     client.client.aclose = AsyncMock()
-    
+
     return client
+
 
 
 @pytest.fixture

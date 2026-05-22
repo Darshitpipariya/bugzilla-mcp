@@ -15,6 +15,18 @@ from .tools.bugzilla import (
     bugs_analysis_context,
     classify_bugs_heuristics,
     analyze_bugs_statistics,
+    create_bug,
+    update_bug,
+    bug_history,
+    bugs_advanced_search,
+    bug_dependencies,
+    duplicate_chain,
+    get_user,
+    search_users,
+    list_products,
+    get_product_components,
+    upload_attachment,
+    tag_comment,
 )
 
 __all__ = [
@@ -32,6 +44,16 @@ __all__ = [
     "bugs_analysis_context",
     "classify_bugs_heuristics",
     "analyze_bugs_statistics",
+    "create_bug",
+    "update_bug",
+    "bug_history",
+    "bugs_advanced_search",
+    "bug_dependencies",
+    "duplicate_chain",
+    "get_user",
+    "search_users",
+    "list_products",
+    "get_product_components",
+    "upload_attachment",
+    "tag_comment",
 ]
-
-

@@ -385,8 +385,466 @@ class Bugzilla:
             "assignee_distribution": make_distribution(assignee_counts),
         }
 
+    async def create_bug(
+        self,
+        product: str,
+        component: str,
+        summary: str,
+        version: str,
+        description: str,
+        severity: str | None = None,
+        priority: str | None = None,
+        assigned_to: str | None = None,
+        keywords: list[str] | None = None,
+        target_milestone: str | None = None,
+    ) -> dict[str, Any]:
+        """File a new bug in Bugzilla via POST /rest/bug.
+
+        Returns:
+            {"id": <new_bug_id>}
+        """
+        payload: dict[str, Any] = {
+            "product": product,
+            "component": component,
+            "summary": summary,
+            "version": version,
+            "description": description,
+        }
+        if severity is not None:
+            payload["severity"] = severity
+        if priority is not None:
+            payload["priority"] = priority
+        if assigned_to is not None:
+            payload["assigned_to"] = assigned_to
+        if keywords:
+            payload["keywords"] = keywords
+        if target_milestone is not None:
+            payload["target_milestone"] = target_milestone
+
+        r = await self.client.post(
+            url=f"{self.api_url}/bug", params=self.params, json=payload
+        )
+        if r.status_code != 200:
+            raise httpx.TransportError(
+                f"Failed to create bug with Status code: {r.status_code} — {r.text}"
+            )
+        return r.json()
+
+    async def update_bug(
+        self,
+        ids: list[int],
+        status: str | None = None,
+        resolution: str | None = None,
+        assigned_to: str | None = None,
+        severity: str | None = None,
+        priority: str | None = None,
+        whiteboard: str | None = None,
+        comment: str | None = None,
+        comment_is_private: bool = False,
+        dupe_of: int | None = None,
+        target_milestone: str | None = None,
+        keywords: dict[str, list[str]] | None = None,
+        cc: dict[str, list[str]] | None = None,
+        see_also: dict[str, list[str]] | None = None,
+        blocks: dict[str, list[int]] | None = None,
+        depends_on: dict[str, list[int]] | None = None,
+    ) -> dict[str, Any]:
+        """Update one or more bugs via PUT /rest/bug.
+
+        Returns:
+            {"bugs": [{"id": ..., "last_change_time": ...}]}
+        """
+        payload: dict[str, Any] = {"ids": ids}
+        if status is not None:
+            payload["status"] = status
+        if resolution is not None:
+            payload["resolution"] = resolution
+        if assigned_to is not None:
+            payload["assigned_to"] = assigned_to
+        if severity is not None:
+            payload["severity"] = severity
+        if priority is not None:
+            payload["priority"] = priority
+        if whiteboard is not None:
+            payload["whiteboard"] = whiteboard
+        if comment is not None:
+            payload["comment"] = {"body": comment, "is_private": comment_is_private}
+        if dupe_of is not None:
+            payload["dupe_of"] = dupe_of
+        if target_milestone is not None:
+            payload["target_milestone"] = target_milestone
+        if keywords is not None:
+            payload["keywords"] = keywords
+        if cc is not None:
+            payload["cc"] = cc
+        if see_also is not None:
+            payload["see_also"] = see_also
+        if blocks is not None:
+            payload["blocks"] = blocks
+        if depends_on is not None:
+            payload["depends_on"] = depends_on
+
+        # Bugzilla REST update accepts the first id in the URL
+        bug_id = ids[0]
+        r = await self.client.put(
+            url=f"{self.api_url}/bug/{bug_id}", params=self.params, json=payload
+        )
+        if r.status_code != 200:
+            raise httpx.TransportError(
+                f"Failed to update bug with Status code: {r.status_code} — {r.text}"
+            )
+        return r.json()
+
+    async def bug_history(
+        self, bug_id: int, new_since: str | None = None
+    ) -> list[dict[str, Any]]:
+        """Get the change history for a bug via GET /rest/bug/(id)/history.
+
+        Args:
+            bug_id: The bug ID.
+            new_since: Optional ISO datetime string — only return changes after this date.
+
+        Returns:
+            List of history objects with when/who/changes.
+        """
+        params = dict(self.params)
+        if new_since is not None:
+            params["new_since"] = new_since
+
+        r = await self.client.get(
+            url=f"{self.api_url}/bug/{bug_id}/history", params=params
+        )
+        if r.status_code != 200:
+            raise httpx.TransportError(
+                f"Failed to fetch bug history with Status code: {r.status_code}"
+            )
+        bugs = r.json().get("bugs", [])
+        return bugs[0].get("history", []) if bugs else []
+
+    async def bugs_advanced_search(
+        self,
+        product: list[str] | None = None,
+        component: list[str] | None = None,
+        status: list[str] | None = None,
+        resolution: list[str] | None = None,
+        assigned_to: str | None = None,
+        creator: str | None = None,
+        severity: list[str] | None = None,
+        priority: list[str] | None = None,
+        creation_time: str | None = None,
+        last_change_time: str | None = None,
+        keywords: list[str] | None = None,
+        version: list[str] | None = None,
+        target_milestone: list[str] | None = None,
+        limit: int = 50,
+        offset: int = 0,
+    ) -> list[dict[str, Any]]:
+        """Search for bugs with structured multi-criteria filters via GET /rest/bug.
+
+        Returns:
+            List of bug dicts with essential fields only to preserve token budget.
+        """
+        params: dict[str, Any] = dict(self.params)
+        params["limit"] = limit
+        params["offset"] = offset
+
+        if product:
+            params["product"] = product
+        if component:
+            params["component"] = component
+        if status:
+            params["status"] = status
+        if resolution:
+            params["resolution"] = resolution
+        if assigned_to:
+            params["assigned_to"] = assigned_to
+        if creator:
+            params["creator"] = creator
+        if severity:
+            params["severity"] = severity
+        if priority:
+            params["priority"] = priority
+        if creation_time:
+            params["creation_time"] = creation_time
+        if last_change_time:
+            params["last_change_time"] = last_change_time
+        if keywords:
+            params["keywords"] = keywords
+        if version:
+            params["version"] = version
+        if target_milestone:
+            params["target_milestone"] = target_milestone
+
+        r = await self.client.get(url=f"{self.api_url}/bug", params=params)
+        if r.status_code != 200:
+            raise httpx.TransportError(
+                f"Failed to search bugs with Status code: {r.status_code}"
+            )
+
+        bugs = r.json().get("bugs", [])
+        # Return only essential fields for token efficiency
+        essential_keys = {
+            "id", "summary", "status", "resolution",
+            "product", "component", "assigned_to", "priority", "severity",
+            "creation_time", "last_change_time",
+        }
+        return [{k: b.get(k) for k in essential_keys} for b in bugs]
+
+    async def bug_dependencies(self, bug_id: int) -> dict[str, Any]:
+        """Fetch dependency info (blocks / depends_on) for a bug.
+
+        Returns:
+            {"id": ..., "blocks": [...], "depends_on": [...]}
+        """
+        r = await self.client.get(url=f"{self.api_url}/bug/{bug_id}", params=self.params)
+        if r.status_code != 200:
+            raise httpx.TransportError(
+                f"Failed to fetch bug with Status code: {r.status_code}"
+            )
+        bug = r.json()["bugs"][0]
+        return {
+            "id": bug.get("id"),
+            "summary": bug.get("summary"),
+            "status": bug.get("status"),
+            "blocks": bug.get("blocks", []),
+            "depends_on": bug.get("depends_on", []),
+        }
+
+    async def duplicate_chain(
+        self, bug_id: int, max_depth: int = 10
+    ) -> list[dict[str, Any]]:
+        """Traverse the chain of duplicate bugs until reaching the canonical root.
+
+        Args:
+            bug_id: Starting bug ID.
+            max_depth: Maximum recursion depth to prevent infinite loops.
+
+        Returns:
+            Ordered list from child to root: [{"id", "summary", "dupe_of"}, ...]
+        """
+        chain: list[dict[str, Any]] = []
+        visited: set[int] = set()
+        current_id: int = bug_id
+        depth: int = 0
+
+        while current_id is not None and depth < max_depth:
+            if current_id in visited:
+                break
+            visited.add(current_id)
+
+            r = await self.client.get(
+                url=f"{self.api_url}/bug/{current_id}", params=self.params
+            )
+            if r.status_code != 200:
+                raise httpx.TransportError(
+                    f"Failed to fetch bug {current_id} with Status code: {r.status_code}"
+                )
+            bug = r.json()["bugs"][0]
+            chain.append(
+                {
+                    "id": bug.get("id"),
+                    "summary": bug.get("summary"),
+                    "status": bug.get("status"),
+                    "dupe_of": bug.get("dupe_of"),
+                }
+            )
+            current_id = bug.get("dupe_of")
+            depth += 1
+
+        return chain
+
+    async def get_user(
+        self, names: list[str] | None = None, ids: list[int] | None = None
+    ) -> list[dict[str, Any]]:
+        """Look up Bugzilla users by login name(s) or user ID(s).
+
+        Returns:
+            List of user objects with id, real_name, name, email, can_login.
+        """
+        params: dict[str, Any] = dict(self.params)
+        if names:
+            params["names"] = names
+        if ids:
+            params["ids"] = ids
+
+        r = await self.client.get(url=f"{self.api_url}/user", params=params)
+        if r.status_code != 200:
+            raise httpx.TransportError(
+                f"Failed to fetch users with Status code: {r.status_code}"
+            )
+        return r.json().get("users", [])
+
+    async def search_users(self, match: str, limit: int = 10) -> list[dict[str, Any]]:
+        """Search for Bugzilla users by partial name or email (substring match).
+
+        Returns:
+            List of matching user objects.
+        """
+        params: dict[str, Any] = dict(self.params)
+        params["match"] = match
+        params["limit"] = limit
+
+        r = await self.client.get(url=f"{self.api_url}/user", params=params)
+        if r.status_code != 200:
+            raise httpx.TransportError(
+                f"Failed to search users with Status code: {r.status_code}"
+            )
+        return r.json().get("users", [])
+
+    async def list_products(self) -> list[dict[str, Any]]:
+        """List all products that the authenticated user can access.
+
+        Returns:
+            List of product objects with id, name, description, is_active.
+        """
+        # First get accessible product IDs, then fetch their details
+        r = await self.client.get(
+            url=f"{self.api_url}/product_accessible", params=self.params
+        )
+        if r.status_code != 200:
+            raise httpx.TransportError(
+                f"Failed to list products with Status code: {r.status_code}"
+            )
+        ids = r.json().get("ids", [])
+        if not ids:
+            return []
+
+        params: dict[str, Any] = dict(self.params)
+        params["ids"] = ids
+        r2 = await self.client.get(url=f"{self.api_url}/product", params=params)
+        if r2.status_code != 200:
+            raise httpx.TransportError(
+                f"Failed to fetch product details with Status code: {r2.status_code}"
+            )
+        products = r2.json().get("products", [])
+        return [
+            {
+                "id": p.get("id"),
+                "name": p.get("name"),
+                "description": p.get("description"),
+                "is_active": p.get("is_active"),
+            }
+            for p in products
+        ]
+
+    async def get_product_components(
+        self, product_name: str
+    ) -> dict[str, Any]:
+        """Fetch components for a product by name.
+
+        Returns:
+            {"name": "...", "components": [{"name", "description", "default_assignee"}, ...]}
+        """
+        params: dict[str, Any] = dict(self.params)
+        params["names"] = product_name
+
+        r = await self.client.get(url=f"{self.api_url}/product", params=params)
+        if r.status_code != 200:
+            raise httpx.TransportError(
+                f"Failed to fetch product with Status code: {r.status_code}"
+            )
+        products = r.json().get("products", [])
+        if not products:
+            raise ValueError(f"Product '{product_name}' not found")
+
+        product = products[0]
+        components = [
+            {
+                "name": c.get("name"),
+                "description": c.get("description"),
+                "default_assignee": c.get("default_assignee"),
+            }
+            for c in product.get("components", [])
+        ]
+        return {"name": product.get("name"), "components": components}
+
+    async def upload_attachment(
+        self,
+        bug_id: int,
+        file_path: str,
+        summary: str,
+        file_name: str | None = None,
+        content_type: str | None = None,
+        comment: str | None = None,
+        is_patch: bool = False,
+    ) -> dict[str, Any]:
+        """Upload a local file as an attachment to a bug via POST /rest/bug/(id)/attachment.
+
+        Returns:
+            {"attachment_id": ..., "bug_id": ...}
+        """
+        if not os.path.isfile(file_path):
+            raise FileNotFoundError(f"File not found: {file_path}")
+
+        final_name = file_name or os.path.basename(file_path)
+
+        with open(file_path, "rb") as fh:
+            raw = fh.read()
+
+        b64_data = base64.b64encode(raw).decode("utf-8")
+
+        # Auto-detect content_type if not provided
+        if content_type is None:
+            if is_patch or final_name.endswith(".patch") or final_name.endswith(".diff"):
+                content_type = "text/plain"
+            elif final_name.endswith(".txt"):
+                content_type = "text/plain"
+            else:
+                content_type = "application/octet-stream"
+
+        payload: dict[str, Any] = {
+            "ids": [bug_id],
+            "file_name": final_name,
+            "summary": summary,
+            "content_type": content_type,
+            "data": b64_data,
+            "is_patch": is_patch,
+        }
+        if comment is not None:
+            payload["comment"] = comment
+
+        r = await self.client.post(
+            url=f"{self.api_url}/bug/{bug_id}/attachment",
+            params=self.params,
+            json=payload,
+        )
+        if r.status_code != 201:
+            raise httpx.TransportError(
+                f"Failed to upload attachment with Status code: {r.status_code} — {r.text}"
+            )
+        data = r.json()
+        attachments = data.get("attachments", {})
+        attachment_id = list(attachments.keys())[0] if attachments else None
+        return {"attachment_id": int(attachment_id) if attachment_id else None, "bug_id": bug_id}
+
+    async def tag_comment(
+        self, comment_id: int, add: list[str] | None = None, remove: list[str] | None = None
+    ) -> dict[str, Any]:
+        """Add or remove tags on a bug comment via PUT /rest/bug/comment/(id)/tags.
+
+        Returns:
+            {"tags": [...]}
+        """
+        payload: dict[str, Any] = {}
+        if add:
+            payload["add"] = add
+        if remove:
+            payload["remove"] = remove
+
+        r = await self.client.put(
+            url=f"{self.api_url}/bug/comment/{comment_id}/tags",
+            params=self.params,
+            json=payload,
+        )
+        if r.status_code != 200:
+            raise httpx.TransportError(
+                f"Failed to tag comment with Status code: {r.status_code} — {r.text}"
+            )
+        return {"tags": r.json()}
+
     async def close(self):
         """Close the async client"""
         await self.client.aclose()
+
 
 
